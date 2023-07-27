@@ -611,6 +611,7 @@ u8 calibrate_case(afl_state_t *afl, struct queue_entry *q, u8 *use_mem,
   q->bitmap_size = count_bytes(afl, afl->fsrv.trace_bits);
   q->handicap = handicap;
   q->cal_failed = 0;
+  q->llm_score = *(u32 *)afl->shm_score->map;
 
   afl->total_bitmap_size += q->bitmap_size;
   ++afl->total_bitmap_entries;
