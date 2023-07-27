@@ -701,6 +701,10 @@ int main(int argc, char **argv_orig, char **envp) {
 
           afl->schedule = SEEK;
 
+        } else if (!stricmp(optarg, "llm")) {
+
+          afl->schedule = LLM;
+
         } else {
 
           FATAL("Unknown -p power schedule");
@@ -1609,6 +1613,9 @@ int main(int argc, char **argv_orig, char **envp) {
       break;
     case EXPLORE:
       OKF("Using exploration-based constant power schedule (EXPLORE)");
+      break;
+    case LLM:
+      OKF("Using large language model schedule (LLM)");
       break;
     default:
       FATAL("Unknown power schedule");

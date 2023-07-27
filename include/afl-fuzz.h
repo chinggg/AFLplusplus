@@ -188,6 +188,7 @@ struct queue_entry {
 
   u8 *trace_mini;                       /* Trace bytes, if kept             */
   u32 tc_ref;                           /* Trace bytes ref count            */
+  u32 llm_score;                        /* Score after executing functions */
 
 #ifdef INTROSPECTION
   u32 bitsmap_size;
@@ -292,6 +293,7 @@ enum {
   /* 06 */ QUAD,    /* Quadratic schedule               */
   /* 07 */ RARE,    /* Rare edges                       */
   /* 08 */ SEEK,    /* EXPLORE that ignores timings     */
+  /* 09 */ LLM,     /* schedule using large language models */
 
   POWER_SCHEDULES_NUM
 
