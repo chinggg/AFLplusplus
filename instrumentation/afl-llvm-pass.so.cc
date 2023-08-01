@@ -408,6 +408,9 @@ bool AFLCoverage::runOnModule(Module &M) {
   GlobalVariable *AFLMapPtr =
       new GlobalVariable(M, PointerType::get(Int8Ty, 0), false,
                          GlobalValue::ExternalLinkage, 0, "__afl_area_ptr");
+  GlobalVariable *AFLScorePtr =
+      new GlobalVariable(M, PointerType::get(Int32Ty, 0), false,
+                         GlobalValue::ExternalLinkage, 0, "__afl_score_ptr");
   GlobalVariable *AFLPrevLoc;
   GlobalVariable *AFLPrevCaller;
   GlobalVariable *AFLContext = NULL;
@@ -524,6 +527,35 @@ bool AFLCoverage::runOnModule(Module &M) {
     if (!isInInstrumentList(&F, MNAME)) { continue; }
 
     if (F.size() < function_minimum_size) { continue; }
+
+    if (!F.isDeclaration()) {
+        std::string function_ir;
+        raw_string_ostream ir_stream(function_ir);
+        F.print(ir_stream, nullptr);
+
+        // store function IR in `function_ir` variable
+
+        if (debug)
+          errs() << "Function " << F.getName() << " IR:\n" << function_ir << "\n";
+
+        BasicBlock::iterator IP = F.getEntryBlock().getFirstInsertionPt();
+        IRBuilder<>          IRB(&(*IP));
+
+        // insert code in each function to increment *__afl_score_ptr
+        // TODO: *score_ptr = *score_ptr + LLM_SCORE(function_ir)
+        LoadInst *load_ptr = IRB.CreateLoad(
+#if LLVM_VERSION_MAJOR >= 14
+          AFLScorePtr->getType(),
+#endif
+          AFLScorePtr);
+        Value *load_score = IRB.CreateLoad(
+#if LLVM_VERSION_MAJOR >= 14
+          AFLScorePtr->getValueType(),
+#endif
+          load_ptr);
+        Value *add_five = IRB.CreateAdd(load_score, ConstantInt::get(IRB.getInt32Ty(), 5), "add_five");
+        IRB.CreateStore(add_five, load_ptr);
+    }
 
     std::list<Value *> todo;
     for (auto &BB : F) {
