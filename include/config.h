@@ -391,6 +391,10 @@
 
 #define SHM_FUZZ_ENV_VAR "__AFL_SHM_FUZZ_ID"
 
+/* Environment variable used to pass SHM SCORE ID to the called program. */
+
+#define SHM_SCORE_ENV_VAR "__AFL_SHM_SCORE_ID"
+
 /* Other less interesting, internal-only variables. */
 
 #define CLANG_ENV_VAR "__AFL_CLANG_MODE"
