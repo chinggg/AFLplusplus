@@ -437,6 +437,7 @@ typedef struct afl_state {
   afl_forkserver_t fsrv;
   sharedmem_t      shm;
   sharedmem_t     *shm_fuzz;
+  sharedmem_t     *shm_score;
   afl_env_vars_t   afl_env;
 
   char **argv;                                            /* argv if needed */
@@ -1065,6 +1066,8 @@ void afl_states_request_skip(void);
 
 /* Setup shmem for testcase delivery */
 void setup_testcase_shmem(afl_state_t *afl);
+/* Setup shmem for instrumented global variable score */
+void setup_score_shmem(afl_state_t *afl);
 
 void read_afl_environment(afl_state_t *, char **);
 

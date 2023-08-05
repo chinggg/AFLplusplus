@@ -2739,6 +2739,25 @@ void setup_testcase_shmem(afl_state_t *afl) {
 
 }
 
+/* Setup shared map for function score via sharedmem */
+
+void setup_score_shmem(afl_state_t *afl) {
+  afl->shm_score = ck_alloc(sizeof(sharedmem_t));
+  // set the non-instrumented mode to not overwrite the SHM_ENV_VAR
+  u8* map = afl_shm_init(afl->shm_score, sizeof(u32), 1);
+  
+  if (!map) { FATAL("BUG: Zero return from afl_shm_init."); }
+
+#ifdef USEMMAP
+  setenv(SHM_SCORE_ENV_VAR, afl->shm_score->g_shm_file_path, 1);
+#else
+  u8 *shm_str = alloc_printf("%d", afl->shm_score->shm_id);
+  setenv(SHM_SCORE_ENV_VAR, shm_str, 1);
+  ck_free(shm_str);
+#endif
+
+}
+
 /* Do a PATH search and find target binary to see that it exists and
    isn't a shell script - a common and painful mistake. We also check for
    a valid ELF header and for evidence of AFL instrumentation. */

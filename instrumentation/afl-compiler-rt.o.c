@@ -109,6 +109,9 @@ u32 __afl_dictionary_len;
 u64 __afl_map_addr;
 u32 __afl_first_final_loc;
 
+static u32  __afl_score_initial;
+u32        *__afl_score_ptr = &__afl_score_initial;
+
 #ifdef __AFL_CODE_COVERAGE
 typedef struct afl_module_info_t afl_module_info_t;
 
@@ -316,6 +319,39 @@ static void __afl_map_shm_fuzz() {
     exit(1);
 
   }
+
+}
+
+/* SHM score setup. */
+
+static void __afl_map_shm_score() {
+  
+    char *id_str = getenv(SHM_SCORE_ENV_VAR);
+  
+    if (__afl_debug) {
+  
+      fprintf(stderr, "DEBUG: score shmem %s\n", id_str ? id_str : "none");
+  
+    }
+  
+    if (id_str) {
+      u32 shm_id = atoi(id_str);
+      u32 *map = (u32 *)shmat(shm_id, NULL, 0);
+
+      /* Whooooops. */
+
+      if (!map || map == (void *)-1) {
+        send_forkserver_error(FS_ERROR_SHMAT);
+        perror("Failed to setup shared memory for score");
+        _exit(1);
+      }
+
+      __afl_score_ptr = map;
+      fprintf(stderr, "DEBUG: __afl_score_ptr%p\n", __afl_score_ptr);
+
+    }
+
+    return;
 
 }
 
@@ -1458,6 +1494,7 @@ __attribute__((constructor(CTOR_PRIO))) void __afl_auto_early(void) {
   if (getenv("AFL_DISABLE_LLVM_INSTRUMENTATION")) return;
 
   __afl_map_shm();
+  __afl_map_shm_score();
 
 }
 
