@@ -1,0 +1,49 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "compile",
+      "program": "${workspaceFolder}/afl-clang-fast",
+      "args": [
+        "test-instr.c"
+      ],
+      "env": {
+        "AFL_LLVM_INSTRUMENT": "classic",
+        "AFL_DEBUG": "1"
+      },
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "run",
+      "program": "${workspaceFolder}/a.out",
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "type": "lldb",
+      "request": "launch",
+      "name": "fuzz",
+      "program": "${workspaceFolder}/afl-fuzz",
+      "args": [
+        "-i",
+        "in/",
+        "-o",
+        "out/",
+        "./a.out"
+      ],
+      "env": {
+        "AFL_LLVM_INSTRUMENT": "classic",
+        "AFL_DEBUG": "1",
+        "AFL_FORKSRV_INIT_TMOUT": "-1"
+      },
+      "cwd": "${workspaceFolder}",
+      "initCommands": [
+        // comment to debug afl itself
+        // "settings set target.process.follow-fork-mode child"
+      ]
+    },
+  ]
+}
