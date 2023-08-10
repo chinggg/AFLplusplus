@@ -74,10 +74,33 @@ typedef long double max_align_t;
 
 #include "afl-llvm-common.h"
 #include "llvm-alternative-coverage.h"
+#include "../openai/openai.hpp"
 
 using namespace llvm;
 
 namespace {
+
+unsigned int LLMScore(std::string func_ir) {
+  openai::start();
+  std::string prompt_str = "Give complexity of following function shown as LLVM IR. Return results in the form of single integers: <relative complexity out of 100>, seperated with new lines. Do not return anything else. Do not give explanation!\n" + func_ir;
+  nlohmann::json post_data = {
+    {"model", "gpt-4"},
+    {"max_tokens", 64},
+  }; 
+  post_data["messages"] = nlohmann::json::array();
+  post_data["messages"][0] = {
+    {"role", "user"}, 
+    {"content", prompt_str}
+  };
+  auto chat = openai::chat().create(post_data);
+  std::string result =  chat["choices"][0]["message"]["content"];
+  if (debug) {
+    errs() << prompt_str << "\n";
+    errs() << chat.dump(2) << "\n";
+    errs() << result << "\n";
+  }
+  return std::stoi(result);
+}
 
 #if LLVM_VERSION_MAJOR >= 11                        /* use new pass manager */
 class AFLCoverage : public PassInfoMixin<AFLCoverage> {
@@ -542,7 +565,7 @@ bool AFLCoverage::runOnModule(Module &M) {
         IRBuilder<>          IRB(&(*IP));
 
         // insert code in each function to increment *__afl_score_ptr
-        // TODO: *score_ptr = *score_ptr + LLM_SCORE(function_ir)
+        // *score_ptr = *score_ptr + LLMScore(function_ir)
         LoadInst *load_ptr = IRB.CreateLoad(
 #if LLVM_VERSION_MAJOR >= 14
           AFLScorePtr->getType(),
@@ -553,8 +576,9 @@ bool AFLCoverage::runOnModule(Module &M) {
           AFLScorePtr->getValueType(),
 #endif
           load_ptr);
-        Value *add_five = IRB.CreateAdd(load_score, ConstantInt::get(IRB.getInt32Ty(), 5), "add_five");
-        IRB.CreateStore(add_five, load_ptr);
+        unsigned int llm_score = LLMScore(function_ir);
+        Value *add_score = IRB.CreateAdd(load_score, ConstantInt::get(IRB.getInt32Ty(), llm_score), "add_score");
+        IRB.CreateStore(add_score, load_ptr);
     }
 
     std::list<Value *> todo;

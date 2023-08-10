@@ -423,7 +423,8 @@ instrumentation/afl-llvm-common.o: instrumentation/afl-llvm-common.cc instrument
 ifeq "$(LLVM_MIN_4_0_1)" "0"
 	$(info [!] N-gram branch coverage instrumentation is not available for llvm version $(LLVMVER))
 endif
-	$(CXX) $(CLANG_CPPFL) -Wdeprecated -fno-rtti -fPIC -std=$(LLVM_STDCXX) -shared $< -o $@ $(CLANG_LFL) instrumentation/afl-llvm-common.o
+ # add -fexception and -lcurl to support openai-cpp
+	$(CXX) $(CLANG_CPPFL) -fexceptions -Wdeprecated -fno-rtti -fPIC -std=$(LLVM_STDCXX) -shared $< -o $@ $(CLANG_LFL) -lcurl instrumentation/afl-llvm-common.o
 
 ./SanitizerCoveragePCGUARD.so: instrumentation/SanitizerCoveragePCGUARD.so.cc instrumentation/afl-llvm-common.o | test_deps
 ifeq "$(LLVM_13_OK)" "1"
