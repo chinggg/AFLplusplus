@@ -95,7 +95,6 @@ unsigned int LLMScore(std::string func_ir) {
   auto chat = openai::chat().create(post_data);
   std::string result =  chat["choices"][0]["message"]["content"];
   if (debug) {
-    errs() << prompt_str << "\n";
     errs() << chat.dump(2) << "\n";
     errs() << result << "\n";
   }
@@ -559,7 +558,7 @@ bool AFLCoverage::runOnModule(Module &M) {
         // store function IR in `function_ir` variable
 
         if (debug)
-          errs() << "Function " << F.getName() << " IR:\n" << function_ir << "\n";
+          errs() << "LLVM IR length: " << function_ir.length() << "\n";
 
         BasicBlock::iterator IP = F.getEntryBlock().getFirstInsertionPt();
         IRBuilder<>          IRB(&(*IP));
@@ -576,7 +575,8 @@ bool AFLCoverage::runOnModule(Module &M) {
           AFLScorePtr->getValueType(),
 #endif
           load_ptr);
-        unsigned int llm_score = LLMScore(function_ir);
+        // if function IR is too long, we set the score to 100
+        unsigned int llm_score = function_ir.length() < 8192 ? LLMScore(function_ir) : 100;
         Value *add_score = IRB.CreateAdd(load_score, ConstantInt::get(IRB.getInt32Ty(), llm_score), "add_score");
         IRB.CreateStore(add_score, load_ptr);
     }
