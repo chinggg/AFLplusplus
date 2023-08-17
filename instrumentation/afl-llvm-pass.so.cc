@@ -80,9 +80,9 @@ using namespace llvm;
 
 namespace {
 
-unsigned int LLMScore(std::string func_ir) {
+unsigned int LLMScore(std::string func_source) {
   openai::start();
-  std::string prompt_str = "Give complexity of following function shown as LLVM IR. Return results in the form of single integers: <relative complexity out of 100>, seperated with new lines. Do not return anything else. Do not give explanation!\n" + func_ir;
+  std::string prompt_str = "Give complexity of following function. Return results in the form of single integers: <relative complexity out of 100>, seperated with new lines. Do not return anything else. Do not give explanation!\n" + func_source;
   nlohmann::json post_data = {
     {"model", "gpt-4"},
     {"max_tokens", 64},
@@ -99,6 +99,49 @@ unsigned int LLMScore(std::string func_ir) {
     errs() << result << "\n";
   }
   return std::stoi(result);
+}
+
+std::string getFuncSource(Function &F) {
+  // get first instruction and last instruction of function F
+  Instruction *firstInst = &F.front().front();
+  Instruction *lastInst = &F.back().back();
+
+  // iter instructions in function F until the first instruction with debug location info
+  // if no debug location info, return empty string
+  // FIXME: Segmentation fault here
+  while (!firstInst->getDebugLoc()) {
+    firstInst = firstInst->getNextNode();
+    if (firstInst == lastInst) return "";
+  }
+
+  while (!lastInst->getDebugLoc()) {
+    lastInst = lastInst->getPrevNode();
+    if (lastInst == firstInst) return "";
+  }
+
+  auto firstLoc = firstInst->getDebugLoc();
+  auto lastLoc = lastInst->getDebugLoc();
+
+  // get the source code file path, and debug location info
+  // read source code from the first instruction to the last instruction
+  std::string source = "";
+  std::string fileDir = firstLoc->getDirectory().str();
+  std::string fileName = firstLoc->getFilename().str();
+  std::string filePath = fileDir + "/" + fileName;
+  if (debug) {
+    errs() << "Reading " << F.getName() << " source code from: " << fileName 
+    << ":" << firstLoc->getLine() << "-" << lastLoc->getLine() << "\n";
+  }
+  std::ifstream file(filePath);
+  std::string line;
+  int lineNum = 0;
+  while (std::getline(file, line)) {
+    lineNum++;
+    if (lineNum + 1 < firstLoc->getLine()) continue; 
+    if (lineNum - 1 > lastLoc->getLine()) break;
+    source += line + "\n";
+  }
+  return source;
 }
 
 #if LLVM_VERSION_MAJOR >= 11                        /* use new pass manager */
@@ -551,14 +594,13 @@ bool AFLCoverage::runOnModule(Module &M) {
     if (F.size() < function_minimum_size) { continue; }
 
     if (!F.isDeclaration()) {
-        std::string function_ir;
-        raw_string_ostream ir_stream(function_ir);
-        F.print(ir_stream, nullptr);
-
-        // store function IR in `function_ir` variable
+        std::string func_source = getFuncSource(F);
+        if (func_source.empty() || func_source.length() < 16) {
+          continue;
+        }
 
         if (debug)
-          errs() << "LLVM IR length: " << function_ir.length() << "\n";
+          errs() << F.getName() << " length: " << func_source.length() << "\n";
 
         BasicBlock::iterator IP = F.getEntryBlock().getFirstInsertionPt();
         IRBuilder<>          IRB(&(*IP));
@@ -575,8 +617,8 @@ bool AFLCoverage::runOnModule(Module &M) {
           AFLScorePtr->getValueType(),
 #endif
           load_ptr);
-        // if function IR is too long, we set the score to 100
-        unsigned int llm_score = function_ir.length() < 8192 ? LLMScore(function_ir) : 100;
+        // if function is too long, we set the score to 100
+        unsigned int llm_score = func_source.length() < 8192 ? LLMScore(func_source) : 100;
         Value *add_score = IRB.CreateAdd(load_score, ConstantInt::get(IRB.getInt32Ty(), llm_score), "add_score");
         IRB.CreateStore(add_score, load_ptr);
     }
