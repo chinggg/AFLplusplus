@@ -106,10 +106,13 @@ std::string getFuncSource(Function &F) {
   Instruction *firstInst = &F.front().front();
   Instruction *lastInst = &F.back().back();
 
+  if (firstInst == nullptr || lastInst == nullptr) return "";
+
   // iter instructions in function F until the first instruction with debug location info
   // if no debug location info, return empty string
-  // FIXME: Segmentation fault here
-  while (!firstInst->getDebugLoc()) {
+  // NOTE: skip instruction with debugloc at 0, eg. var declaration, 
+  // these lines cannot be accurately mapped to source code
+  while (!firstInst->getDebugLoc() || !firstInst->getDebugLoc().getLine()) {
     firstInst = firstInst->getNextNode();
     if (firstInst == lastInst) return "";
   }
@@ -128,17 +131,19 @@ std::string getFuncSource(Function &F) {
   std::string fileDir = firstLoc->getDirectory().str();
   std::string fileName = firstLoc->getFilename().str();
   std::string filePath = fileDir + "/" + fileName;
+  unsigned firstLine = firstLoc->getLine();
+  unsigned lastLine = lastLoc->getLine();
   if (debug) {
     errs() << "Reading " << F.getName() << " source code from: " << fileName 
-    << ":" << firstLoc->getLine() << "-" << lastLoc->getLine() << "\n";
+    << ":" << firstLine << "-" << lastLine << "\n";
   }
   std::ifstream file(filePath);
   std::string line;
   int lineNum = 0;
   while (std::getline(file, line)) {
     lineNum++;
-    if (lineNum + 1 < firstLoc->getLine()) continue; 
-    if (lineNum - 1 > lastLoc->getLine()) break;
+    if (lineNum < firstLine - 1) continue; 
+    if (lineNum > lastLine + 1) break;
     source += line + "\n";
   }
   return source;
