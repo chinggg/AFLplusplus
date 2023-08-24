@@ -113,12 +113,16 @@ std::string getFuncSource(Function &F) {
   // NOTE: skip instruction with debugloc at 0, eg. var declaration, 
   // these lines cannot be accurately mapped to source code
   while (!firstInst->getDebugLoc() || !firstInst->getDebugLoc().getLine()) {
-    firstInst = firstInst->getNextNode();
+    // NOTE: getNextNode can return nullptr if reaching the end of basic block,
+    // if so we need to get the first instruction of the next basic block
+    if (firstInst->getNextNode() != nullptr) firstInst = firstInst->getNextNode();
+    else firstInst = &firstInst->getParent()->getNextNode()->front();
     if (firstInst == lastInst) return "";
   }
 
   while (!lastInst->getDebugLoc()) {
-    lastInst = lastInst->getPrevNode();
+    if (lastInst->getPrevNode() != nullptr) lastInst = lastInst->getPrevNode();
+    else lastInst = &lastInst->getParent()->getPrevNode()->back();
     if (lastInst == firstInst) return "";
   }
 
