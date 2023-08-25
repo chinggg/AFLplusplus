@@ -82,7 +82,7 @@ namespace {
 
 unsigned int LLMScore(std::string func_source) {
   openai::start();
-  std::string prompt_str = "Give complexity of following function. Return results in the form of single integers: <relative complexity out of 100>, seperated with new lines. Do not return anything else. Do not give explanation!\n" + func_source;
+  std::string prompt_str = "Give complexity of following function. Return results in the form of single integers: <relative complexity out of 100>, seperated with new lines. Always respond a value even if implementation details are not provided. Do not return anything else. Do not give explanation!\n" + func_source;
   nlohmann::json post_data = {
     {"model", "gpt-4"},
     {"max_tokens", 64},
@@ -137,6 +137,10 @@ std::string getFuncSource(Function &F) {
   std::string filePath = fileDir + "/" + fileName;
   unsigned firstLine = firstLoc->getLine();
   unsigned lastLine = lastLoc->getLine();
+  // HACK: ignore function in headers and one-line functions, eg initializers in C++
+  if (fileName.find(".h") != std::string::npos || firstLine == lastLine) {
+    return "";
+  }
   if (debug) {
     errs() << "Reading " << F.getName() << " source code from: " << fileName 
     << ":" << firstLine << "-" << lastLine << "\n";
