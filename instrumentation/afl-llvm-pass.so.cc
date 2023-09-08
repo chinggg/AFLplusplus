@@ -82,15 +82,18 @@ namespace {
 
 unsigned int LLMScore(std::string func_source) {
   openai::start();
-  std::string prompt_str = "Give complexity of following function. Return results in the form of single integers: <relative complexity out of 100>, seperated with new lines. Always respond a value even if implementation details are not provided. Do not return anything else. Do not give explanation!\n" + func_source;
+  const char *prompt = getenv("OPENAI_API_PROMPT");
+  if (!prompt) prompt = "Give relative complexity score of following function in the form as an integer from 0 to 100. You should answer EXACTLY one integer with NO additional words as they cost me more money.\n";
+  const char *model = getenv("OPENAI_API_MODEL");
+  if (!model) model = "gpt-3.5-turbo";
   nlohmann::json post_data = {
-    {"model", "gpt-4"},
-    {"max_tokens", 64},
+    {"model", model},
+    {"max_tokens", 32},  // small `max_token` since we expect single integer
   }; 
   post_data["messages"] = nlohmann::json::array();
   post_data["messages"][0] = {
     {"role", "user"}, 
-    {"content", prompt_str}
+    {"content", prompt + func_source}
   };
   auto chat = openai::chat().create(post_data);
   std::string result =  chat["choices"][0]["message"]["content"];
@@ -98,7 +101,13 @@ unsigned int LLMScore(std::string func_source) {
     errs() << chat.dump(2) << "\n";
     errs() << result << "\n";
   }
-  return std::stoi(result);
+  // Read score integer from result string sentence
+  std::stringstream ss;
+  std::copy_if(result.begin(), result.end(), std::ostream_iterator<char>(ss), ::isdigit);
+  int score = 0;
+  ss >> score;
+  if (debug) errs() << "Score: " << score << "\n";
+  return score;
 }
 
 std::string getFuncSource(Function &F) {
@@ -631,7 +640,9 @@ bool AFLCoverage::runOnModule(Module &M) {
 #endif
           load_ptr);
         // if function is too long, we set the score to 100
-        unsigned int llm_score = func_source.length() < 8192 ? LLMScore(func_source) : 100;
+        const char *maxlen_p = getenv("OPENAI_API_MAXLEN");
+        unsigned int maxlen = maxlen_p ? atoi(maxlen_p) : 8192;
+        unsigned int llm_score = func_source.length() < maxlen ? LLMScore(func_source) : 100;
         Value *add_score = IRB.CreateAdd(load_score, ConstantInt::get(IRB.getInt32Ty(), llm_score), "add_score");
         IRB.CreateStore(add_score, load_ptr);
     }
