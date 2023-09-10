@@ -701,7 +701,7 @@ void update_bitmap_score(afl_state_t *afl, struct queue_entry *q) {
   u64 fav_factor;
   u64 fuzz_p2;
 
-  if (likely(afl->schedule >= FAST && afl->schedule < RARE)) {
+  if (likely((afl->schedule >= FAST && afl->schedule < RARE) || afl->schedule == LLM)) {
 
     fuzz_p2 = 0;  // Skip the fuzz_p2 comparison
 
@@ -741,7 +741,7 @@ void update_bitmap_score(afl_state_t *afl, struct queue_entry *q) {
         u64 top_rated_fav_factor;
         u64 top_rated_fuzz_p2;
 
-        if (likely(afl->schedule >= FAST && afl->schedule < RARE)) {
+        if (likely((afl->schedule >= FAST && afl->schedule < RARE) || afl->schedule == LLM)) {
 
           top_rated_fuzz_p2 = 0;  // Skip the fuzz_p2 comparison
 
