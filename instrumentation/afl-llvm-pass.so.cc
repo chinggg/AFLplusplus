@@ -629,22 +629,34 @@ bool AFLCoverage::runOnModule(Module &M) {
 
         // insert code in each function to increment *__afl_score_ptr
         // *score_ptr = *score_ptr + LLMScore(function_ir)
-        LoadInst *load_ptr = IRB.CreateLoad(
+        // score_ptr[1] = score_ptr[1] + 1
+        LoadInst *load_score = IRB.CreateLoad(
 #if LLVM_VERSION_MAJOR >= 14
           AFLScorePtr->getType(),
 #endif
           AFLScorePtr);
-        Value *load_score = IRB.CreateLoad(
+        Value *load_cnt = IRB.CreateGEP(
 #if LLVM_VERSION_MAJOR >= 14
-          AFLScorePtr->getValueType(),
+          Int32Ty,
 #endif
-          load_ptr);
+          load_score,
+          ConstantInt::get(Int32Ty, 1)
+        );
         // if function is too long, we set the score to 100
         const char *maxlen_p = getenv("OPENAI_API_MAXLEN");
         unsigned int maxlen = maxlen_p ? atoi(maxlen_p) : 8192;
         unsigned int llm_score = func_source.length() < maxlen ? LLMScore(func_source) : 100;
-        Value *add_score = IRB.CreateAdd(load_score, ConstantInt::get(IRB.getInt32Ty(), llm_score), "add_score");
-        IRB.CreateStore(add_score, load_ptr);
+        // atomic increment
+        IRB.CreateAtomicRMW(llvm::AtomicRMWInst::BinOp::Add, load_score, ConstantInt::get(Int32Ty, llm_score),
+#if LLVM_VERSION_MAJOR >= 13
+                            llvm::MaybeAlign(4),
+#endif
+                            llvm::AtomicOrdering::Monotonic);
+        IRB.CreateAtomicRMW(llvm::AtomicRMWInst::BinOp::Add, load_cnt, ConstantInt::get(Int32Ty, 1),
+#if LLVM_VERSION_MAJOR >= 13
+                            llvm::MaybeAlign(4),
+#endif
+                            llvm::AtomicOrdering::Monotonic);
     }
 
     std::list<Value *> todo;

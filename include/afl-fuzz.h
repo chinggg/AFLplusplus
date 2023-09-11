@@ -189,6 +189,7 @@ struct queue_entry {
   u8 *trace_mini;                       /* Trace bytes, if kept             */
   u32 tc_ref;                           /* Trace bytes ref count            */
   u32 llm_score;                        /* Score after executing functions */
+  u32 llm_cnt;                          /* Counter of executed functions */
 
 #ifdef INTROSPECTION
   u32 bitsmap_size;

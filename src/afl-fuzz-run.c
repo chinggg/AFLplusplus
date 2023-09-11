@@ -58,7 +58,8 @@ fuzz_run_target(afl_state_t *afl, afl_forkserver_t *fsrv, u32 timeout) {
 
 #endif
 
-  *(u32*)afl->shm_score->map = 0;  // Zero SHM for score
+  ((u32*)afl->shm_score->map)[0] = 0;  // Zero SHM for score value sum
+  ((u32*)afl->shm_score->map)[1] = 0;  // Zero SHM for score cnt
   fsrv_run_result_t res = afl_fsrv_run_target(fsrv, timeout, &afl->stop_soon);
 
   /* If post_run() function is defined in custom mutator, the function will be
@@ -628,7 +629,8 @@ u8 calibrate_case(afl_state_t *afl, struct queue_entry *q, u8 *use_mem,
   q->bitmap_size = count_bytes(afl, afl->fsrv.trace_bits);
   q->handicap = handicap;
   q->cal_failed = 0;
-  q->llm_score = *(u32 *)afl->shm_score->map;
+  q->llm_score = ((u32 *)afl->shm_score->map)[0];
+  q->llm_cnt = ((u32 *)afl->shm_score->map)[1];
 
   afl->total_bitmap_size += q->bitmap_size;
   ++afl->total_bitmap_entries;
