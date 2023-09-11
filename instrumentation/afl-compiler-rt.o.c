@@ -109,8 +109,8 @@ u32 __afl_dictionary_len;
 u64 __afl_map_addr;
 u32 __afl_first_final_loc;
 
-static u32  __afl_score_initial;
-u32        *__afl_score_ptr = &__afl_score_initial;
+static u32  __afl_score_initial[2];  // 0=val, 1=cnt
+u32        *__afl_score_ptr = __afl_score_initial;
 
 #ifdef __AFL_CODE_COVERAGE
 typedef struct afl_module_info_t afl_module_info_t;

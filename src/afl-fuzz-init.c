@@ -2739,7 +2739,7 @@ void setup_testcase_shmem(afl_state_t *afl) {
 void setup_score_shmem(afl_state_t *afl) {
   afl->shm_score = ck_alloc(sizeof(sharedmem_t));
   // set the non-instrumented mode to not overwrite the SHM_ENV_VAR
-  u8* map = afl_shm_init(afl->shm_score, sizeof(u32), 1);
+  u8* map = afl_shm_init(afl->shm_score, sizeof(u32) * 2, 1);
   
   if (!map) { FATAL("BUG: Zero return from afl_shm_init."); }
 
