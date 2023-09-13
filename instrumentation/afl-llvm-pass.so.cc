@@ -38,6 +38,7 @@
 #include <string>
 #include <fstream>
 #include <sys/time.h>
+#include <regex>
 
 #include "llvm/Config/llvm-config.h"
 #if LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR < 5
@@ -80,6 +81,19 @@ using namespace llvm;
 
 namespace {
 
+unsigned int extractScore(const std::string& sentence) {
+    std::regex pattern("(\\b(?:100|[1-9]?\\d)\\b)");
+
+    std::smatch matches;
+    if (std::regex_search(sentence, matches, pattern)) {
+        int score = std::stoi(matches[0]);
+        if (score >= 0 && score <= 100) {
+            return score;
+        }
+    }
+    return 0;
+}
+
 unsigned int LLMScore(std::string func_source) {
   openai::start();
   const char *prompt = getenv("OPENAI_API_PROMPT");
@@ -102,10 +116,7 @@ unsigned int LLMScore(std::string func_source) {
     errs() << result << "\n";
   }
   // Read score integer from result string sentence
-  std::stringstream ss;
-  std::copy_if(result.begin(), result.end(), std::ostream_iterator<char>(ss), ::isdigit);
-  int score = 0;
-  ss >> score;
+  unsigned score = extractScore(result);
   if (debug) errs() << "Score: " << score << "\n";
   return score;
 }
