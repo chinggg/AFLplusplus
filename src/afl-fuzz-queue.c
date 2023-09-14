@@ -716,7 +716,7 @@ void update_bitmap_score(afl_state_t *afl, struct queue_entry *q) {
 
   }
 
-  if (afl->schedule == LLM) {
+  if (afl->schedule == LLM || afl->schedule == FASTLLM) {
 
     fav_factor = -(q->llm_score / q->llm_cnt);  // high score means high priority, negate to let fav_factor lower
 
@@ -757,7 +757,7 @@ void update_bitmap_score(afl_state_t *afl, struct queue_entry *q) {
 
         }
 
-        if (afl->schedule == LLM) {
+        if (afl->schedule == LLM || afl->schedule == FASTLLM) {
 
           top_rated_fav_factor = -(afl->top_rated[i]->llm_score / afl->top_rated[i]->llm_cnt);
 
@@ -1072,6 +1072,7 @@ u32 calculate_score(afl_state_t *afl, struct queue_entry *q) {
 
     // Fall through
     case FAST:
+    case FASTLLM:
 
       // Don't modify unfuzzed seeds
       if (!q->fuzz_level) break;
