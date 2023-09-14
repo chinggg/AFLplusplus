@@ -683,6 +683,10 @@ int main(int argc, char **argv_orig, char **envp) {
 
           afl->schedule = LLM;
 
+        } else if (!stricmp(optarg, "fastllm")) {
+
+          afl->schedule = FASTLLM;
+
         } else {
 
           FATAL("Unknown -p power schedule");
@@ -1584,6 +1588,9 @@ int main(int argc, char **argv_orig, char **envp) {
       break;
     case LLM:
       OKF("Using large language model schedule (LLM)");
+      break;
+    case FASTLLM:
+      OKF("Using FAST schedule that favors LLM score (FASTLLM)");
       break;
     default:
       FATAL("Unknown power schedule");
