@@ -717,7 +717,7 @@ void update_bitmap_score(afl_state_t *afl, struct queue_entry *q) {
 
   if (afl->schedule == LLM) {
 
-    fav_factor = -q->llm_score;  // high score means high priority, negate to let fav_factor lower
+    fav_factor = -(q->llm_score / q->llm_cnt);  // high score means high priority, negate to let fav_factor lower
 
   } else if (unlikely(afl->schedule >= RARE) || unlikely(afl->fixed_seed)) {
 
@@ -758,7 +758,7 @@ void update_bitmap_score(afl_state_t *afl, struct queue_entry *q) {
 
         if (afl->schedule == LLM) {
 
-          top_rated_fav_factor = -afl->top_rated[i]->llm_score;
+          top_rated_fav_factor = -(afl->top_rated[i]->llm_score / afl->top_rated[i]->llm_cnt);
 
         } else if (unlikely(afl->schedule >= RARE) || unlikely(afl->fixed_seed)) {
 
@@ -1140,7 +1140,7 @@ u32 calculate_score(afl_state_t *afl, struct queue_entry *q) {
       break;
 
     case LLM:
-      // TODO: how to assign energy by updating perf_score
+      perf_score *= (double)q->llm_score / q->llm_cnt / 100.0;
       break;
 
     default:
