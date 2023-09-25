@@ -158,7 +158,8 @@ std::string getFuncSource(Function &F) {
   unsigned firstLine = firstLoc->getLine();
   unsigned lastLine = lastLoc->getLine();
   // HACK: ignore function in headers and one-line functions, eg initializers in C++
-  if (fileName.find(".h") != std::string::npos || firstLine == lastLine) {
+  if (fileName.find(".h") != std::string::npos || 
+    filePath.find("include/") != std::string::npos || firstLine == lastLine) {
     return "";
   }
   if (debug) {
@@ -626,7 +627,7 @@ bool AFLCoverage::runOnModule(Module &M) {
 
     if (F.size() < function_minimum_size) { continue; }
 
-    if (!F.isDeclaration()) {
+    if (!F.isDeclaration() && !F.getName().contains('$')) {  // skip uselss function by filtering mangled name
         std::string func_source = getFuncSource(F);
         if (func_source.empty() || func_source.length() < 16) {
           continue;
