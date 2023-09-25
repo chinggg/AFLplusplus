@@ -26,6 +26,7 @@
 #include <limits.h>
 #include <ctype.h>
 #include <math.h>
+#include <strings.h>
 
 #ifdef _STANDALONE_MODULE
 void minimize_bits(afl_state_t *afl, u8 *dst, u8 *src) {
@@ -702,6 +703,9 @@ void update_bitmap_score(afl_state_t *afl, struct queue_entry *q) {
   u64 fav_factor;
   u64 fuzz_p2;
 
+  char *llm_mode = getenv("AFL_LLM_MODE");
+  if (!llm_mode) llm_mode = "AVG";
+
   if (likely((afl->schedule >= FAST && afl->schedule < RARE) || afl->schedule == LLM)) {
 
     fuzz_p2 = 0;  // Skip the fuzz_p2 comparison
@@ -718,7 +722,9 @@ void update_bitmap_score(afl_state_t *afl, struct queue_entry *q) {
 
   if (afl->schedule == LLM || afl->schedule == FASTLLM) {
 
-    fav_factor = -(q->llm_score / q->llm_cnt);  // high score means high priority, negate to let fav_factor lower
+    if (!strcasecmp(llm_mode, "SUM")) fav_factor = -q->llm_score;
+
+    else fav_factor = -(q->llm_score / q->llm_cnt);  // high score means high priority, negate to let fav_factor lower
 
   } else if (unlikely(afl->schedule >= RARE) || unlikely(afl->fixed_seed)) {
 
@@ -759,7 +765,9 @@ void update_bitmap_score(afl_state_t *afl, struct queue_entry *q) {
 
         if (afl->schedule == LLM || afl->schedule == FASTLLM) {
 
-          top_rated_fav_factor = -(afl->top_rated[i]->llm_score / afl->top_rated[i]->llm_cnt);
+          if (!strcasecmp(llm_mode, "SUM")) top_rated_fav_factor = -afl->top_rated[i]->llm_score;
+
+          else top_rated_fav_factor = -(afl->top_rated[i]->llm_score / afl->top_rated[i]->llm_cnt);
 
         } else if (unlikely(afl->schedule >= RARE) || unlikely(afl->fixed_seed)) {
 
@@ -1155,8 +1163,13 @@ u32 calculate_score(afl_state_t *afl, struct queue_entry *q) {
       break;
 
     case LLM:
-      perf_score *= (double)q->llm_score / q->llm_cnt / 100.0;
+    {
+      double score_factor = 1.0;
+      char *score_factor_env = getenv("AFL_LLM_FACTOR");
+      if (score_factor_env) score_factor = atof(score_factor_env);
+      perf_score *= (double)q->llm_score / q->llm_cnt / 100.0 * score_factor;
       break;
+    }
 
     default:
       PFATAL("Unknown Power Schedule");
