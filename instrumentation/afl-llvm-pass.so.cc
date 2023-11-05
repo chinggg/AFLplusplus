@@ -157,9 +157,12 @@ std::string getFuncSource(Function &F) {
   std::string filePath = fileDir + "/" + fileName;
   unsigned firstLine = firstLoc->getLine();
   unsigned lastLine = lastLoc->getLine();
-  // HACK: ignore function in headers and one-line functions, eg initializers in C++
-  if (fileName.find(".h") != std::string::npos || 
-    filePath.find("include/") != std::string::npos || firstLine == lastLine) {
+
+  // HACK: ignore headers and files with certain ignored paths and one-line functions, eg initializers in C++
+  std::vector<std::string> ignoredPaths = {".h", "include/", "third-party/", "third_party/", "shlr/"};
+  if (std::any_of(std::begin(ignoredPaths), std::end(ignoredPaths), [&](std::string str) {
+    return filePath.find(str) != std::string::npos;
+  }) || firstLine == lastLine) {
     return "";
   }
   if (debug) {
