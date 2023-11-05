@@ -630,12 +630,10 @@ bool AFLCoverage::runOnModule(Module &M) {
 
     if (F.size() < function_minimum_size) { continue; }
 
-    if (!F.isDeclaration() && !F.getName().contains('$')) {  // skip uselss function by filtering mangled name
-        std::string func_source = getFuncSource(F);
-        if (func_source.empty() || func_source.length() < 16) {
-          continue;
-        }
-
+    // skip declaration or useless function by filtering mangled name
+    if (F.isDeclaration() || F.getName().contains('$')) continue;
+    std::string func_source = getFuncSource(F);
+    if (func_source.length() > 16) {  // only score non-short function
         if (debug)
           errs() << F.getName() << " length: " << func_source.length() << "\n";
 
