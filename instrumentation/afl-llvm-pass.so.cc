@@ -645,12 +645,12 @@ bool AFLCoverage::runOnModule(Module &M) {
         // score_ptr[1] = score_ptr[1] + 1
         LoadInst *load_score = IRB.CreateLoad(
 #if LLVM_VERSION_MAJOR >= 14
-          AFLScorePtr->getType(),
+          PointerType::get(Int32Ty, 0),
 #endif
           AFLScorePtr);
         Value *load_cnt = IRB.CreateGEP(
 #if LLVM_VERSION_MAJOR >= 14
-          load_score->getType()->getNonOpaquePointerElementType(),
+          Int32Ty,
 #endif
           load_score,
           ConstantInt::get(Int32Ty, 1)
