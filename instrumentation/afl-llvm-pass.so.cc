@@ -109,7 +109,8 @@ unsigned int LLMScore(std::string func_source) {
     {"role", "user"}, 
     {"content", prompt + func_source}
   };
-  auto chat = openai::chat().create(post_data);
+  static auto chat_instance = openai::chat();  // initialized only once
+  auto chat = chat_instance.create(post_data);
   std::string result =  chat["choices"][0]["message"]["content"];
   if (debug) {
     errs() << chat.dump(2) << "\n";
