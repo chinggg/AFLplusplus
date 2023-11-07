@@ -620,6 +620,7 @@ bool AFLCoverage::runOnModule(Module &M) {
   int inst_blocks = 0;
   scanForDangerousFunctions(&M);
 
+  bool use_llm = getenv("OPENAI_API_KEY") ? true : false;
   for (auto &F : M) {
 
     int has_calls = 0;
@@ -634,7 +635,8 @@ bool AFLCoverage::runOnModule(Module &M) {
     // skip declaration or useless function by filtering mangled name
     if (F.isDeclaration() || F.getName().contains('$')) continue;
     std::string func_source = getFuncSource(F);
-    if (func_source.length() > 16) {  // only score non-short function
+    // enter if-statement only when using llm and function is non-short
+    if (use_llm && func_source.length() > 16) {
         if (debug)
           errs() << F.getName() << " length: " << func_source.length() << "\n";
 
