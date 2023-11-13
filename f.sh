@@ -17,15 +17,20 @@ IFS='|' read -ra label_array <<< "$labels"
 for label in "${label_array[@]}"; do
   sched=$label
   unset AFL_LLM_FACTOR
-  unset AFL_LLM_MODE
+  unset AFL_LLM_FAVOR
   if [[ $label =~ X([0-9]+)$ ]]; then
     export AFL_LLM_FACTOR=${BASH_REMATCH[1]}
     sched=${sched%X[0-9]}
   fi
 
   if [[ $sched == *sum ]]; then
-    export AFL_LLM_MODE=SUM
+    export AFL_LLM_FAVOR=SUM
     sched=${sched%sum}
+  fi
+
+  if [[ $sched == *avg ]]; then
+    export AFL_LLM_FAVOR=AVG
+    sched=${sched%avg}
   fi
 
   $AFL_FUZZ -p $sched -i $IN -o out_${NAME}_${label} -- $CMD &
