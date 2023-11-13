@@ -702,8 +702,9 @@ void update_bitmap_score(afl_state_t *afl, struct queue_entry *q) {
   u64 fav_factor;
   u64 fuzz_p2;
 
-  char *llm_mode = getenv("AFL_LLM_MODE");
-  if (!llm_mode) llm_mode = "AVG";
+  // if set, giving priotity to testcase with high score SUM or AVG
+  // otherwise, no effect
+  char *llm_favor = getenv("AFL_LLM_FAVOR");
 
   if (likely((afl->schedule >= FAST && afl->schedule < RARE) || afl->schedule == LLM)) {
 
@@ -720,11 +721,12 @@ void update_bitmap_score(afl_state_t *afl, struct queue_entry *q) {
   }
 
   if (afl->schedule == LLM || afl->schedule == FASTLLM) {
-
-    if (!strcasecmp(llm_mode, "SUM")) fav_factor = -q->llm_score;
-
-    else fav_factor = -(q->llm_score / q->llm_cnt);  // high score means high priority, negate to let fav_factor lower
-
+    if (llm_favor) {
+      fav_factor = -q->llm_score;  // high score means high priority, negate to let fav_factor lower
+      if (!strcasecmp(llm_favor, "AVG")) fav_factor /= q->llm_cnt;
+    } else {
+      fav_factor = q->exec_us * q->len;
+    }
   } else if (unlikely(afl->schedule >= RARE) || unlikely(afl->fixed_seed)) {
 
     fav_factor = q->len << 2;
@@ -763,11 +765,12 @@ void update_bitmap_score(afl_state_t *afl, struct queue_entry *q) {
         }
 
         if (afl->schedule == LLM || afl->schedule == FASTLLM) {
-
-          if (!strcasecmp(llm_mode, "SUM")) top_rated_fav_factor = -afl->top_rated[i]->llm_score;
-
-          else top_rated_fav_factor = -(afl->top_rated[i]->llm_score / afl->top_rated[i]->llm_cnt);
-
+          if (llm_favor) {
+            top_rated_fav_factor = -afl->top_rated[i]->llm_score;
+            if (!strcasecmp(llm_favor, "AVG")) top_rated_fav_factor /= afl->top_rated[i]->llm_cnt;
+          } else {
+            top_rated_fav_factor = afl->top_rated[i]->exec_us * afl->top_rated[i]->len;
+          }
         } else if (unlikely(afl->schedule >= RARE) || unlikely(afl->fixed_seed)) {
 
           top_rated_fav_factor = afl->top_rated[i]->len << 2;
