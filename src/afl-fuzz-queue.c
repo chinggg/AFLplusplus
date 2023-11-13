@@ -1167,10 +1167,19 @@ u32 calculate_score(afl_state_t *afl, struct queue_entry *q) {
 
     case LLM:
     {
-      double score_factor = 1.0;
-      char *score_factor_env = getenv("AFL_LLM_FACTOR");
-      if (score_factor_env) score_factor = atof(score_factor_env);
-      perf_score *= (double)q->llm_score / q->llm_cnt / 100.0 * score_factor;
+      // constant used in paper
+      double energy_base = 1.15;
+      double energy_const = 120;
+      // deprecated: multiply energy by factor * llm_score
+      // char *score_factor_env = getenv("AFL_LLM_FACTOR");
+      // if (score_factor_env) score_factor = atof(score_factor_env);
+      char *energy_base_env = getenv("AFL_LLM_ENERGY_BASE");
+      char *energy_const_env = getenv("AFL_LLM_ENERGY_CONST");
+      if (energy_base_env) energy_base = atof(energy_base_env);
+      if (energy_const_env) energy_const = atof(energy_const_env);
+      double llm_avg_score = (double)q->llm_score / q->llm_cnt;  // range: 0-100
+      // perf_score = energy_base ^ llm_score + energy_const
+      factor = (pow(energy_base, llm_avg_score) + energy_const) / 100;
       break;
     }
 
@@ -1179,7 +1188,7 @@ u32 calculate_score(afl_state_t *afl, struct queue_entry *q) {
 
   }
 
-  if (unlikely(afl->schedule >= EXPLOIT && afl->schedule <= QUAD)) {
+  if (unlikely(afl->schedule >= EXPLOIT && afl->schedule <= QUAD) || afl->schedule == LLM) {
 
     if (factor > MAX_FACTOR) { factor = MAX_FACTOR; }
     perf_score *= factor / POWER_BETA;
