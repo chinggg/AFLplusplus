@@ -1107,6 +1107,22 @@ u32 calculate_score(afl_state_t *afl, struct queue_entry *q) {
 
       if (q->favored) factor *= 1.15;
 
+    // Fall through so both LLM and FASTLLM use LLM energy factor
+    case LLM:
+      if (afl->schedule != LLM && afl->schedule != FASTLLM) break;
+      // constant used in paper
+      double energy_base = 1.1;
+      double energy_const = 50;
+      // deprecated: multiply energy by factor * llm_score
+      // char *score_factor_env = getenv("AFL_LLM_FACTOR");
+      // if (score_factor_env) score_factor = atof(score_factor_env);
+      char *energy_base_env = getenv("AFL_LLM_ENERGY_BASE");
+      char *energy_const_env = getenv("AFL_LLM_ENERGY_CONST");
+      if (energy_base_env) energy_base = atof(energy_base_env);
+      if (energy_const_env) energy_const = atof(energy_const_env);
+      double llm_avg_score = (double)q->llm_score / q->llm_cnt;  // range: 0-100
+      // perf_score = energy_base ^ llm_score + energy_const
+      factor *= (pow(energy_base, llm_avg_score) + energy_const) / 100;
       break;
 
     case LIN:
@@ -1150,24 +1166,6 @@ u32 calculate_score(afl_state_t *afl, struct queue_entry *q) {
                                   (double)afl->fsrv.total_execs));
 
       break;
-
-    case LLM:
-    {
-      // constant used in paper
-      double energy_base = 1.15;
-      double energy_const = 120;
-      // deprecated: multiply energy by factor * llm_score
-      // char *score_factor_env = getenv("AFL_LLM_FACTOR");
-      // if (score_factor_env) score_factor = atof(score_factor_env);
-      char *energy_base_env = getenv("AFL_LLM_ENERGY_BASE");
-      char *energy_const_env = getenv("AFL_LLM_ENERGY_CONST");
-      if (energy_base_env) energy_base = atof(energy_base_env);
-      if (energy_const_env) energy_const = atof(energy_const_env);
-      double llm_avg_score = (double)q->llm_score / q->llm_cnt;  // range: 0-100
-      // perf_score = energy_base ^ llm_score + energy_const
-      factor = (pow(energy_base, llm_avg_score) + energy_const) / 100;
-      break;
-    }
 
     default:
       PFATAL("Unknown Power Schedule");
