@@ -39,6 +39,7 @@
 #include <fstream>
 #include <sys/time.h>
 #include <regex>
+#include <thread>
 
 #include "llvm/Config/llvm-config.h"
 #if LLVM_VERSION_MAJOR == 3 && LLVM_VERSION_MINOR < 5
@@ -110,12 +111,30 @@ unsigned int LLMScore(std::string func_source) {
     {"content", prompt + func_source}
   };
   static auto chat_instance = openai::chat();  // initialized only once
-  auto chat = chat_instance.create(post_data);
-  std::string result =  chat["choices"][0]["message"]["content"];
-  if (debug) {
-    errs() << chat.dump(2) << "\n";
-    errs() << result << "\n";
-  }
+  unsigned retryTimes = 0;
+  std::string result;
+  do {
+      try {
+          auto chat = chat_instance.create(post_data);
+          result = chat["choices"][0]["message"]["content"];
+          retryTimes = 0;
+          if (debug) {
+            errs() << chat.dump(2) << "\n";
+            errs() << result << "\n";
+          }
+      } catch (const std::exception& e) {
+          std::string error_message = e.what();
+          if (error_message.find("type_error") != std::string::npos ||  // not valid json, may be 5xx error HTML
+            error_message.find("rate_limit_exceeded") != std::string::npos ||
+            error_message.find("429") != std::string::npos) {
+              std::this_thread::sleep_for(std::chrono::seconds(5));
+              retryTimes += 1;
+              errs() << "LLM API error: " << error_message << "\nRetrying " << retryTimes << " times after 5 seconds.\n";
+          } else {
+              throw;  // rethrow the exception if it's not known error
+          }
+      }
+  } while (retryTimes); 
   // Read score integer from result string sentence
   unsigned score = extractScore(result);
   if (debug) errs() << "Score: " << score << "\n";
