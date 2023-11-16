@@ -185,7 +185,7 @@ std::string getFuncSource(Function &F) {
   unsigned lastLine = lastLoc->getLine();
 
   // HACK: ignore headers and files with certain ignored paths and one-line functions, eg initializers in C++
-  std::vector<std::string> ignoredPaths = {".h", "include/", "third-party/", "third_party/", "shlr/"};
+  std::vector<std::string> ignoredPaths = {".h", "include/"};
   if (std::any_of(std::begin(ignoredPaths), std::end(ignoredPaths), [&](std::string str) {
     return filePath.find(str) != std::string::npos;
   }) || firstLine == lastLine) {
