@@ -95,6 +95,12 @@ unsigned int extractScore(const std::string& sentence) {
     return 0;
 }
 
+unsigned int NoLLMScore(std::string func_source) {
+  // count number of lines in func_source as score, with a maximum of 100
+  unsigned int score = std::count(func_source.begin(), func_source.end(), '\n') + 1;
+  return score > 100 ? 100 : score;
+}
+
 unsigned int LLMScore(std::string func_source) {
   openai::start();
   const char *prompt = getenv("OPENAI_API_PROMPT");
@@ -655,7 +661,7 @@ bool AFLCoverage::runOnModule(Module &M) {
     if (F.isDeclaration() || F.getName().contains('$')) continue;
     std::string func_source = getFuncSource(F);
     // enter if-statement only when using llm and function is non-short
-    if (use_llm && func_source.length() > 16) {
+    if (func_source.length() > 16) {
         if (debug)
           errs() << F.getName() << " length: " << func_source.length() << "\n";
 
@@ -680,7 +686,7 @@ bool AFLCoverage::runOnModule(Module &M) {
         // if function is too long, we set the score to 100
         const char *maxlen_p = getenv("OPENAI_API_MAXLEN");
         unsigned int maxlen = maxlen_p ? atoi(maxlen_p) : 8192;
-        unsigned int llm_score = func_source.length() < maxlen ? LLMScore(func_source) : 100;
+        unsigned int llm_score = func_source.length() < maxlen ? NoLLMScore(func_source) : 100;
         // atomic increment
         IRB.CreateAtomicRMW(llvm::AtomicRMWInst::BinOp::Add, load_score, ConstantInt::get(Int32Ty, llm_score),
 #if LLVM_VERSION_MAJOR >= 13
