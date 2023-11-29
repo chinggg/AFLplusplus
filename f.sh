@@ -3,7 +3,7 @@
 # scripts to run fuzz campaigns under different setting
 # usage: 
 # /path/to/f.sh "command" [input_path]
-AFL_FUZZ="afl-fuzz -s 42"
+AFL_FUZZ="afl-fuzz"
 CMD=$1
 IN=${2:-"in"}
 EXE=$(echo "$CMD" | awk '{print $1}' | awk -F'/' '{print $NF}')
@@ -42,5 +42,5 @@ while true; do
   sleep 2h
   ((counter+=2))
   # Run plot.sh with the appropriate arguments
-  ./plot.sh $NAME ${NAME}_${counter}h.png
+  ./plot.sh $NAME ${NAME}_${counter}h.pdf
 done

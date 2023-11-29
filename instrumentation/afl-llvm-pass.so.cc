@@ -108,7 +108,7 @@ unsigned int LLMScore(std::string func_source) {
   post_data["messages"] = nlohmann::json::array();
   post_data["messages"][0] = {
     {"role", "user"}, 
-    {"content", prompt + func_source}
+    {"content", std::string(prompt) + "\n" + func_source}
   };
   static auto chat_instance = openai::chat();  // initialized only once
   unsigned retryTimes = 0;
