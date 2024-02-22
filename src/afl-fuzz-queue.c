@@ -1135,7 +1135,7 @@ u32 calculate_score(afl_state_t *afl, struct queue_entry *q) {
       if (energy_base_env) energy_base = atof(energy_base_env);
       if (energy_const_env) energy_const = atof(energy_const_env);
       double llm_avg_score = (double)q->llm_score / q->llm_cnt;  // range: 0-100
-      // perf_score = energy_base ^ llm_score + energy_const
+      // factor *= (energy_base ^ llm_avg_score + energy_const) / 100
       factor *= (pow(energy_base, llm_avg_score) + energy_const) / 100;
       break;
 

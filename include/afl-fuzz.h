@@ -289,13 +289,13 @@ enum {
   /* 01 */ MMOPT,   /* Modified MOPT schedule           */
   /* 02 */ EXPLOIT, /* AFL's exploitation-based const.  */
   /* 03 */ FAST,    /* Exponential schedule             */
-  /* 03 */ FASTLLM, /* FAST schedule that favors LLM score */
+  /* 03 */ FASTLLM, /* LLM schedule but keeps factor calculated by FAST in calculate_score */
   /* 04 */ COE,     /* Cut-Off Exponential schedule     */
   /* 05 */ LIN,     /* Linear schedule                  */
   /* 06 */ QUAD,    /* Quadratic schedule               */
   /* 07 */ RARE,    /* Rare edges                       */
   /* 08 */ SEEK,    /* EXPLORE that ignores timings     */
-  /* 09 */ LLM,     /* schedule using large language models */
+  /* 09 */ LLM,     /* Adjust energy score and top_rated paths using large language models */
 
   POWER_SCHEDULES_NUM
 

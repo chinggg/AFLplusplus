@@ -10,6 +10,7 @@ static char *afl_environment_deprecated[] = {
     "AFL_DEFER_FORKSRV",
     "AFL_POST_LIBRARY",
     "AFL_PERSISTENT",
+    "AFL_LLM_FACTOR",
     NULL
 
 };
@@ -259,6 +260,9 @@ static char *afl_environment_variables[] = {
     "AFL_USE_QASAN",
     "AFL_PRINT_FILENAMES",
     "AFL_PIZZA_MODE",
+    "AFL_LLM_FAVOR",    // use with -p llm/fastllm. if set, update_bitmap_score will favor top_rated path based on score avg or sum
+    "AFL_LLM_ENERGY_BASE",    // use with -p llm/fastllm. calculate_score will multiply perf_score by a factor which is exponential with llm_score
+    "AFL_LLM_ENERGY_CONST",    // factor *= (energy_base ^ llm_score + energy_const) / 100
     NULL
 
 };

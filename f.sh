@@ -11,17 +11,12 @@ NAME=${FUZZ:-$EXE}
 
 # export AFL_IGNORE_PROBLEMS=1
 
-labels="default|fast|fastllm|fastllmsum|llm|llmsum|llmX2|llmX4|llmsumX2|llmsumX4"
+labels="default|fast|fastllm|llm|fastllmsum|fastllmavg|llmsum|llmavg"
 IFS='|' read -ra label_array <<< "$labels"
 
 for label in "${label_array[@]}"; do
   sched=$label
-  unset AFL_LLM_FACTOR
   unset AFL_LLM_FAVOR
-  if [[ $label =~ X([0-9]+)$ ]]; then
-    export AFL_LLM_FACTOR=${BASH_REMATCH[1]}
-    sched=${sched%X[0-9]}
-  fi
 
   if [[ $sched == *sum ]]; then
     export AFL_LLM_FAVOR=SUM
