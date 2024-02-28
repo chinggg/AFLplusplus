@@ -126,6 +126,8 @@ unsigned int LLMScore(std::string func_source) {
           std::string error_message = e.what();
           if (error_message.find("type_error") != std::string::npos ||  // not valid json, may be 5xx error HTML
             error_message.find("rate_limit_exceeded") != std::string::npos ||
+            error_message.find("request_timeout") != std::string::npos ||  // "code":"request_timeout","message":"Timed out generating response.
+            error_message.find("503") != std::string::npos ||  // message":"Service Unavailable.","param":null,"type":"cf_service_unavailable"
             error_message.find("429") != std::string::npos) {
               std::this_thread::sleep_for(std::chrono::seconds(5));
               retryTimes += 1;
